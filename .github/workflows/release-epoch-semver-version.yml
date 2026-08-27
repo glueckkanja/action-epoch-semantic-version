@@ -41,7 +41,7 @@ jobs:
 
       - name: Generate epoch semantic version
         id: version
-        uses: ./ # us semver instead
+        uses: glueckkanja/action-semver-version@4f799f77cf377c25dc29fd25b6fa901874039b59 # v0.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           suppress-tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
