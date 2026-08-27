@@ -1,24 +1,111 @@
-name: Reusable Workflow Example
+name: Generate Epoch Semantic Version
 description: >
-  Brief description of your workflow.
+  Computes the next epoch semantic version (YYYY.WW.P), creates a Git tag,
+  and publishes a GitHub release with auto-generated release notes.
 
 inputs:
-  input1:
-    description: "input1 description"
+  github-token:
+    description: "GitHub token with contents:write permission for tagging and releasing"
     required: true
-  input2:
-    description: "input2 description"
+  prefix:
+    description: "Optional prefix to prepend to generated tags (e.g., module names)"
     required: false
+    default: ""
+  suppress-release:
+    description: "If true, skip creating a GitHub release"
+    required: false
+    default: "false"
+  is-draft-release:
+    description: "If true, create the GitHub release as a draft"
+    required: false
+    default: "false"
+  suppress-tag:
+    description: "If true, skip creating a Git tag and release"
+    required: false
+    default: "false"
+  check-last-commit-only:
+    description: "If true, only inspect the most recent commit when determining bump type"
+    required: false
+    default: "false"
+  is-prerelease:
+    description: "If true, generate a prerelease version"
+    required: false
+    default: "false"
+  prerelease-name:
+    description: "Name for prerelease identifier (e.g., rc, alpha, beta). If empty, keeps plain epoch semver while still marking the release as prerelease."
+    required: false
+    default: ""
 
 outputs:
-  example-output:
-    description: "output description"
-    value: "output value"
+  version:
+    description: "Calculated epoch semantic version (year.week.patch)"
+    value: ${{ steps.compute.outputs.version }}
+  tag:
+    description: "Created tag name"
+    value: ${{ steps.compute.outputs.tag }}
+  bump-type:
+    description: "Type of bump applied (release, patch)"
+    value: ${{ steps.compute.outputs.bump_type }}
+  previous-tag:
+    description: "Most recent tag prior to calculation (if any)"
+    value: ${{ steps.compute.outputs.previous_tag }}
+  commit-subject:
+    description: "Commit subject that drove the bump decision"
+    value: ${{ steps.compute.outputs.commit_subject }}
+  release-id:
+    description: "Numeric ID of the created/existing GitHub release. Empty when release creation is suppressed."
+    value: ${{ steps.release.outputs.release_id }}
 
 runs:
   using: composite
   steps:
-    - name: Hello World
+    - name: Checkout repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Compute next version
+      id: compute
+      env:
+        PREFIX: ${{ inputs.prefix }}
+        CHECK_LAST_COMMIT_ONLY: ${{ inputs.check-last-commit-only }}
+        IS_PRERELEASE: ${{ inputs.is-prerelease }}
+        PRERELEASE_NAME: ${{ inputs.prerelease-name }}
       shell: pwsh
       run: |
-        & "${{ github.action_path }}/scripts/hello-world.ps1"
+        & "${{ github.action_path }}/scripts/compute-next-version.ps1"
+
+    - name: Create and push tag
+      if: ${{ inputs.suppress-tag != 'true' }}
+      env:
+        TAG_NAME: ${{ steps.compute.outputs.tag }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: pwsh
+      run: |
+        & "${{ github.action_path }}/scripts/create-and-push-tag.ps1"
+
+    - name: Create GitHub release
+      id: release
+      if: ${{ inputs.suppress-tag != 'true' && inputs.suppress-release != 'true' }}
+      env:
+        TAG_NAME: ${{ steps.compute.outputs.tag }}
+        CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        IS_PRERELEASE: ${{ inputs.is-prerelease }}
+        IS_DRAFT_RELEASE: ${{ inputs.is-draft-release }}
+      shell: pwsh
+      run: |
+        & "${{ github.action_path }}/scripts/create-github-release.ps1"
+
+    - name: Write summary
+      shell: pwsh
+      env:
+        VERSION: ${{ steps.compute.outputs.version }}
+        TAG: ${{ steps.compute.outputs.tag }}
+        BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
+        PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
+        COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
+        RELEASE_ID: ${{ steps.release.outputs.release_id }}
+      run: |
+        & "${{ github.action_path }}/scripts/write-step-summary.ps1"

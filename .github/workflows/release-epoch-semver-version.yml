@@ -1,0 +1,48 @@
+name: Release Epoch Semver Version
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+    inputs:
+      create_tag:
+        description: "Create a Git tag and release"
+        default: false
+        type: boolean
+      is_prerelease:
+        description: "Create a prerelease version"
+        default: false
+        type: boolean
+
+permissions:
+  contents: write # needed for the epoch-semver action (create tag and release)
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      bump-type: ${{ steps.version.outputs.bump-type }}
+      previous-tag: ${{ steps.version.outputs.previous-tag }}
+      commit-subject: ${{ steps.version.outputs.commit-subject }}
+      release-id: ${{ steps.version.outputs.release-id }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate epoch semantic version
+        id: version
+        uses: ./ # us semver instead
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          suppress-tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
+          is-prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
