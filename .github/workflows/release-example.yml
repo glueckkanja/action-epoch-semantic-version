@@ -1,0 +1,16 @@
+name: Release Example
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release Automation
+        run: |
+          echo "use this pipeline for release automation"

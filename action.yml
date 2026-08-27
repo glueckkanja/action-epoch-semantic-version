@@ -1,0 +1,24 @@
+name: Reusable Workflow Example
+description: >
+  Brief description of your workflow.
+
+inputs:
+  input1:
+    description: "input1 description"
+    required: true
+  input2:
+    description: "input2 description"
+    required: false
+
+outputs:
+  example-output:
+    description: "output description"
+    value: "output value"
+
+runs:
+  using: composite
+  steps:
+    - name: Hello World
+      shell: pwsh
+      run: |
+        & "${{ github.action_path }}/scripts/hello-world.ps1"
