@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: Generate epoch semantic version
         id: version
-        uses: glueckkanja/action-semantic-version@bf577c9f78f441761f3d12158310bd8ab4bcd2df # v3.0.1
+        uses: glueckkanja/action-semantic-version@c0be0689c7783da9213a257be71bd0ea15ee00f5 # v3.0.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           suppress-tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
