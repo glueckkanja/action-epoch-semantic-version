@@ -4,34 +4,34 @@ description: >
   and publishes a GitHub release with auto-generated release notes.
 
 inputs:
-  github-token:
+  github_token:
     description: "GitHub token with contents:write permission for tagging and releasing"
     required: true
   prefix:
     description: "Optional prefix to prepend to generated tags (e.g., module names)"
     required: false
     default: ""
-  suppress-release:
+  suppress_release:
     description: "If true, skip creating a GitHub release"
     required: false
     default: "false"
-  is-draft-release:
+  is_draft_release:
     description: "If true, create the GitHub release as a draft"
     required: false
     default: "false"
-  suppress-tag:
+  suppress_tag:
     description: "If true, skip creating a Git tag and release"
     required: false
     default: "false"
-  check-last-commit-only:
+  check_last_commit_only:
     description: "If true, only inspect the most recent commit when determining bump type"
     required: false
     default: "false"
-  is-prerelease:
+  is_prerelease:
     description: "If true, generate a prerelease version"
     required: false
     default: "false"
-  prerelease-name:
+  prerelease_name:
     description: "Name for prerelease identifier (e.g., rc, alpha, beta). If empty, keeps plain epoch semver while still marking the release as prerelease."
     required: false
     default: ""
@@ -43,16 +43,16 @@ outputs:
   tag:
     description: "Created tag name"
     value: ${{ steps.compute.outputs.tag }}
-  bump-type:
+  bump_type:
     description: "Type of bump applied (release, patch)"
     value: ${{ steps.compute.outputs.bump_type }}
-  previous-tag:
+  previous_tag:
     description: "Most recent tag prior to calculation (if any)"
     value: ${{ steps.compute.outputs.previous_tag }}
-  commit-subject:
+  commit_subject:
     description: "Commit subject that drove the bump decision"
     value: ${{ steps.compute.outputs.commit_subject }}
-  release-id:
+  release_id:
     description: "Numeric ID of the created/existing GitHub release. Empty when release creation is suppressed."
     value: ${{ steps.release.outputs.release_id }}
 
@@ -69,31 +69,31 @@ runs:
       id: compute
       env:
         PREFIX: ${{ inputs.prefix }}
-        CHECK_LAST_COMMIT_ONLY: ${{ inputs.check-last-commit-only }}
-        IS_PRERELEASE: ${{ inputs.is-prerelease }}
-        PRERELEASE_NAME: ${{ inputs.prerelease-name }}
+        CHECK_LAST_COMMIT_ONLY: ${{ inputs.check_last_commit_only }}
+        IS_PRERELEASE: ${{ inputs.is_prerelease }}
+        PRERELEASE_NAME: ${{ inputs.prerelease_name }}
       shell: pwsh
       run: |
         & "${{ github.action_path }}/scripts/compute-next-version.ps1"
 
     - name: Create and push tag
-      if: ${{ inputs.suppress-tag != 'true' }}
+      if: ${{ inputs.suppress_tag != 'true' }}
       env:
         TAG_NAME: ${{ steps.compute.outputs.tag }}
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
       shell: pwsh
       run: |
         & "${{ github.action_path }}/scripts/create-and-push-tag.ps1"
 
     - name: Create GitHub release
       id: release
-      if: ${{ inputs.suppress-tag != 'true' && inputs.suppress-release != 'true' }}
+      if: ${{ inputs.suppress_tag != 'true' && inputs.suppress_release != 'true' }}
       env:
         TAG_NAME: ${{ steps.compute.outputs.tag }}
         CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
-        GH_TOKEN: ${{ inputs.github-token }}
-        IS_PRERELEASE: ${{ inputs.is-prerelease }}
-        IS_DRAFT_RELEASE: ${{ inputs.is-draft-release }}
+        GH_TOKEN: ${{ inputs.github_token }}
+        IS_PRERELEASE: ${{ inputs.is_prerelease }}
+        IS_DRAFT_RELEASE: ${{ inputs.is_draft_release }}
       shell: pwsh
       run: |
         & "${{ github.action_path }}/scripts/create-github-release.ps1"

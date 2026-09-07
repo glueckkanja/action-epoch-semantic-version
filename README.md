@@ -41,23 +41,23 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
-      bump-type: ${{ steps.version.outputs.bump-type }}
-      previous-tag: ${{ steps.version.outputs.previous-tag }}
-      commit-subject: ${{ steps.version.outputs.commit-subject }}
-      release-id: ${{ steps.version.outputs.release-id }}
+      bump_type: ${{ steps.version.outputs.bump_type }}
+      previous_tag: ${{ steps.version.outputs.previous_tag }}
+      commit_subject: ${{ steps.version.outputs.commit_subject }}
+      release_id: ${{ steps.version.outputs.release_id }}
     steps:
       - name: Generate epoch semantic version
         id: version
         uses: glueckkanja/action-epoch-semver-version@SHA # v1.0.0
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prefix: license-module # optional: prefix for tags like license-module-vX.Y.Z
-          suppress-release: "false" # optional: set true to skip creating a GitHub release
-          is-draft-release: "false" # optional: set true to create a draft GitHub release
-          suppress-tag: "false" # optional: set true to skip both tag and release creation
-          check-last-commit-only: "false" # optional: set true to only inspect the latest commit
-          is-prerelease: "false" # optional: set true to generate a prerelease version
-          prerelease-name: "" # optional: set a prerelease suffix name (for example 'rc', 'alpha', 'beta'); keep empty to create a prerelease without suffix
+          suppress_release: "false" # optional: set true to skip creating a GitHub release
+          is_draft_release: "false" # optional: set true to create a draft GitHub release
+          suppress_tag: "false" # optional: set true to skip both tag and release creation
+          check_last_commit_only: "false" # optional: set true to only inspect the latest commit
+          is_prerelease: "false" # optional: set true to generate a prerelease version
+          prerelease_name: "" # optional: set a prerelease suffix name (for example 'rc', 'alpha', 'beta'); keep empty to create a prerelease without suffix
 
   publish:
     runs-on: ubuntu-latest
@@ -67,35 +67,35 @@ jobs:
         run: |
           echo "Version:    ${{ needs.version.outputs.version }}"
           echo "Tag:        ${{ needs.version.outputs.tag }}"
-          echo "Bump:       ${{ needs.version.outputs.bump-type }}"
-          echo "Prev tag:   ${{ needs.version.outputs.previous-tag }}"
-          echo "Commit:     ${{ needs.version.outputs.commit-subject }}"
-          echo "Release ID: ${{ needs.version.outputs.release-id }}"
+          echo "Bump:       ${{ needs.version.outputs.bump_type }}"
+          echo "Prev tag:   ${{ needs.version.outputs.previous_tag }}"
+          echo "Commit:     ${{ needs.version.outputs.commit_subject }}"
+          echo "Release ID: ${{ needs.version.outputs.release_id }}"
 ```
 
 ### Permissions
 
-- `contents: write` — Required on the **caller's job**. Allows the action to create tags and releases. Pass `${{ secrets.GITHUB_TOKEN }}` via the `github-token` input.
+- `contents: write` — Required on the **caller's job**. Allows the action to create tags and releases. Pass `${{ secrets.GITHUB_TOKEN }}` via the `github_token` input.
 
 ### Inputs
 
-- `github-token` _(string, required)_ – GitHub token with `contents: write` permission. Pass `${{ secrets.GITHUB_TOKEN }}`.
+- `github_token` _(string, required)_ – GitHub token with `contents: write` permission. Pass `${{ secrets.GITHUB_TOKEN }}`.
 - `prefix` _(string, default: empty)_ – Optional prefix prepended to generated tags (for example `license-module-vYYYY.WW.P`).
-- `suppress-release` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, skips creating a GitHub release while still creating tags (unless suppressed below).
-- `is-draft-release` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, creates the GitHub release as a draft.
-- `suppress-tag` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, skips creating both the Git tag and the GitHub release.
-- `check-last-commit-only` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, only the most recent commit is inspected to determine the bump type instead of all commits since the previous tag.
-- `is-prerelease` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, marks the GitHub release as prerelease.
-- `prerelease-name` _(string, default: empty)_ – Optional prerelease identifier name (for example `rc`, `alpha`, `beta`). If set, the version includes a suffix (for example `v2026.8.2-rc.1`). If empty, the version remains plain epoch semver (for example `v2026.8.2`) while still creating a prerelease release.
+- `suppress_release` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, skips creating a GitHub release while still creating tags (unless suppressed below).
+- `is_draft_release` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, creates the GitHub release as a draft.
+- `suppress_tag` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, skips creating both the Git tag and the GitHub release.
+- `check_last_commit_only` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, only the most recent commit is inspected to determine the bump type instead of all commits since the previous tag.
+- `is_prerelease` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, marks the GitHub release as prerelease.
+- `prerelease_name` _(string, default: empty)_ – Optional prerelease identifier name (for example `rc`, `alpha`, `beta`). If set, the version includes a suffix (for example `v2026.8.2-rc.1`). If empty, the version remains plain epoch semver (for example `v2026.8.2`) while still creating a prerelease release.
 
 ### Outputs
 
 - `version` – The calculated semantic version (for example `2026.8.2`).
 - `tag` – The tag name that would be created (for example `v2026.8.2` or `module-v2026.8.2`).
-- `bump-type` – The bump classification applied (`release` or `patch`).
-- `previous-tag` – The most recent matching tag prior to this run, if any.
-- `commit-subject` – The commit message subject that determined the bump decision.
-- `release-id` – Numeric ID of the created (or existing) GitHub release. Empty when release creation is suppressed via `suppress-release` or `suppress-tag`.
+- `bump_type` – The bump classification applied (`release` or `patch`).
+- `previous_tag` – The most recent matching tag prior to this run, if any.
+- `commit_subject` – The commit message subject that determined the bump decision.
+- `release_id` – Numeric ID of the created (or existing) GitHub release. Empty when release creation is suppressed via `suppress_release` or `suppress_tag`.
 
 The run summary also includes a direct link to the created GitHub release for quick access.
 

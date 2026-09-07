@@ -29,15 +29,15 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
-      bump-type: ${{ steps.version.outputs.bump-type }}
-      previous-tag: ${{ steps.version.outputs.previous-tag }}
-      commit-subject: ${{ steps.version.outputs.commit-subject }}
-      release-id: ${{ steps.version.outputs.release-id }}
+      bump_type: ${{ steps.version.outputs.bump_type }}
+      previous_tag: ${{ steps.version.outputs.previous_tag }}
+      commit_subject: ${{ steps.version.outputs.commit_subject }}
+      release_id: ${{ steps.version.outputs.release_id }}
     steps:
       - name: Generate epoch semantic version
         id: version
-        uses: glueckkanja/action-semantic-version@c0be0689c7783da9213a257be71bd0ea15ee00f5 # v3.0.1
+        uses: glueckkanja/action-semantic-version@bf577c9f78f441761f3d12158310bd8ab4bcd2df # v3.0.1
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          suppress-tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
-          is-prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          suppress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
+          is_prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
