@@ -7,8 +7,12 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # Determine changelog comparison base from GitHub release flags
-$AllReleasesJson = gh release list --limit 100 --json tagName, isPrerelease, isLatest 2>$null
-$AllReleases = if ($LASTEXITCODE -eq 0 -and $AllReleasesJson) { $AllReleasesJson | ConvertFrom-Json } else { @() }
+$AllReleasesJson = gh release list --limit 100 --json 'tagName,isPrerelease,isLatest'
+if ($LASTEXITCODE -ne 0) {
+  throw 'Failed to retrieve releases'
+}
+
+$AllReleases = if ($AllReleasesJson) { @($AllReleasesJson | ConvertFrom-Json) } else { @() }
 
 Write-Host "[DEBUG] - Retrieved all releases: $($AllReleases) found"
 
