@@ -14,7 +14,9 @@ if ($LASTEXITCODE -ne 0) {
 
 $AllReleases = if ($AllReleasesJson) { @($AllReleasesJson | ConvertFrom-Json) } else { @() }
 
-Write-Host "[DEBUG] - Retrieved all releases: $($AllReleases) found"
+$AllReleaseTagNames = @($AllReleases | ForEach-Object { $_.tagName })
+Write-Host "[DEBUG] - Retrieved all releases: $($AllReleases.Count) found"
+Write-Host "[DEBUG] - Retrieved release tags: $($AllReleaseTagNames -join ', ')"
 
 $LastPrerelease = $AllReleases | Where-Object { $_.isPrerelease } | Select-Object -First 1
 $LastLatest = $AllReleases | Where-Object { $_.isLatest } | Select-Object -First 1
