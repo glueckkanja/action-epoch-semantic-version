@@ -9,7 +9,8 @@ $HasPrereleaseSuffix = -not [string]::IsNullOrWhiteSpace($PrereleaseName)
 if ($Prefix) {
   $TagMatch = "$Prefix-v*"
   $PrefixWithDash = "$Prefix-"
-} else {
+}
+else {
   $TagMatch = "v*"
   $PrefixWithDash = ""
 }
@@ -64,7 +65,8 @@ foreach ($Subject in $CommitSubjects) {
     $IsBreakingChangeOrFeature = $true
     $CommitSubject = $Subject
     break
-  } elseif ($Subject -match $FeatPattern -and -not $IsBreakingChangeOrFeature) {
+  }
+  elseif ($Subject -match $FeatPattern -and -not $IsBreakingChangeOrFeature) {
     $IsBreakingChangeOrFeature = $true
     $CommitSubject = $Subject
   }
@@ -87,7 +89,8 @@ if ($IsBreakingChangeOrFeature -and -not $SameEpoch) {
   $NewWeek = $CurrentWeek
   $NewPatch = 0
   $BumpType = 'release'
-} else {
+}
+else {
   $NewYear = $LastStableTag ? $LastStableYear : $CurrentYear
   $NewWeek = $LastStableTag ? $LastStableWeek : $CurrentWeek
   $NewPatch = $LastStablePatch + 1
@@ -97,7 +100,6 @@ if ($IsBreakingChangeOrFeature -and -not $SameEpoch) {
 $TargetBaseVersion = "$NewYear.$NewWeek.$NewPatch"
 
 # Find the last prerelease for this target base version and name
-$LastPrereleaseTag = ''
 $LastPrereleaseVersion = 0
 
 if ($IsPrerelease -and $HasPrereleaseSuffix) {
@@ -106,21 +108,19 @@ if ($IsPrerelease -and $HasPrereleaseSuffix) {
     $StrippedTag = $Tag -replace "^$([regex]::Escape($PrefixWithDash))", ''
     $Version = $StrippedTag -replace '^v', ''
     if ($Version -match "^(\d+\.\d+\.\d+)-${EscapedName}\.(\d+)$" -and $Matches[1] -eq $TargetBaseVersion) {
-      $LastPrereleaseTag = $Tag
       $LastPrereleaseVersion = [int]$Matches[2]
       break
     }
   }
 }
 
-# Build the final version string and determine changelog base tag
+# Build the final version string
 if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $PrereleaseVersion = $LastPrereleaseVersion + 1
   $NewVersion = "$NewYear.$NewWeek.$NewPatch-$PrereleaseName.$PrereleaseVersion"
-  $ChangelogBaseTag = $LastPrereleaseTag ? $LastPrereleaseTag : $LastStableTag
-} else {
+}
+else {
   $NewVersion = "$NewYear.$NewWeek.$NewPatch"
-  $ChangelogBaseTag = $LastStableTag
 }
 
 $NewTag = "${PrefixWithDash}v${NewVersion}"
@@ -128,10 +128,8 @@ $NewTag = "${PrefixWithDash}v${NewVersion}"
 # Write outputs
 "bump_type=$BumpType" >> $env:GITHUB_OUTPUT
 "previous_tag=$LastStableTag" >> $env:GITHUB_OUTPUT
-"previous_tag_for_changelog=$ChangelogBaseTag" >> $env:GITHUB_OUTPUT
 "version=$NewVersion" >> $env:GITHUB_OUTPUT
 "tag=$NewTag" >> $env:GITHUB_OUTPUT
 "commit_subject=$CommitSubject" >> $env:GITHUB_OUTPUT
 
 Write-Host "Determined $BumpType bump from '$CommitSubject' -> $NewTag"
-Write-Host "Changelog will be generated from: $($ChangelogBaseTag ? $ChangelogBaseTag : 'initial commit')"

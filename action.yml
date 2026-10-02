@@ -90,7 +90,6 @@ runs:
       if: ${{ inputs.suppress_tag != 'true' && inputs.suppress_release != 'true' }}
       env:
         TAG_NAME: ${{ steps.compute.outputs.tag }}
-        CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
         GH_TOKEN: ${{ inputs.github_token }}
         IS_PRERELEASE: ${{ inputs.is_prerelease }}
         IS_DRAFT_RELEASE: ${{ inputs.is_draft_release }}
