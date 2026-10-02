@@ -12,17 +12,9 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Failed to retrieve releases'
 }
 
-$AllReleases = if ($AllReleasesJson) { @($AllReleasesJson | ConvertFrom-Json) } else { @() }
-
-$AllReleaseTagNames = @($AllReleases | ForEach-Object { $_.tagName })
-Write-Host "[DEBUG] - Retrieved all releases: $($AllReleases.Count) found"
-Write-Host "[DEBUG] - Retrieved release tags: $($AllReleaseTagNames -join ', ')"
-
+$AllReleases = $AllReleasesJson ? @($AllReleasesJson | ConvertFrom-Json) : @()
 $LastPrerelease = $AllReleases | Where-Object { $_.isPrerelease } | Select-Object -First 1
 $LastLatest = $AllReleases | Where-Object { $_.isLatest } | Select-Object -First 1
-
-Write-Host "[DEBUG] - Last prerelease: $($LastPrerelease)"
-Write-Host "[DEBUG] - Last latest release: $($LastLatest)"
 
 $ChangelogBaseTag = $LastLatest ? $LastLatest.tagName : ''
 if ($env:IS_PRERELEASE -eq 'true' -and $LastPrerelease) {
