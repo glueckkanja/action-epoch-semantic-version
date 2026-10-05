@@ -1,7 +1,7 @@
 name: 💡 Feature Request
 description: Suggest an idea or feature request for this action
 title: "[Feature] "
-labels: ["feature request"]
+labels: ["enhancement"]
 body:
   - type: checkboxes
     id: terms
@@ -15,7 +15,7 @@ body:
     id: feature-description
     attributes:
       label: What should be added or changed?
-      description: Please describe your feature request as detailed as possible.
+      description: Please describe your feature request in as much detail as possible.
       placeholder: Feature request
     validations:
       required: true
