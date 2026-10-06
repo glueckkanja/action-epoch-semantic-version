@@ -128,6 +128,11 @@ $NewTag = "${PrefixWithDash}v${NewVersion}"
 # Write outputs
 "bump_type=$BumpType" >> $env:GITHUB_OUTPUT
 "previous_tag=$LastStableTag" >> $env:GITHUB_OUTPUT
+if ($ChangelogBaseTag) {
+  "previous_tag_for_changelog=$ChangelogBaseTag" >> $env:GITHUB_OUTPUT
+} else {
+  "previous_tag_for_changelog=Changelog base will be resolved at release creation" >> $env:GITHUB_OUTPUT
+}
 "previous_tag_for_changelog=$ChangelogBaseTag" >> $env:GITHUB_OUTPUT
 "version=$NewVersion" >> $env:GITHUB_OUTPUT
 "tag=$NewTag" >> $env:GITHUB_OUTPUT
