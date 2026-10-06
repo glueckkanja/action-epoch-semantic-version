@@ -133,7 +133,6 @@ if ($ChangelogBaseTag) {
 } else {
   "previous_tag_for_changelog=Changelog base will be resolved at release creation" >> $env:GITHUB_OUTPUT
 }
-"previous_tag_for_changelog=$ChangelogBaseTag" >> $env:GITHUB_OUTPUT
 "version=$NewVersion" >> $env:GITHUB_OUTPUT
 "tag=$NewTag" >> $env:GITHUB_OUTPUT
 "commit_subject=$CommitSubject" >> $env:GITHUB_OUTPUT
