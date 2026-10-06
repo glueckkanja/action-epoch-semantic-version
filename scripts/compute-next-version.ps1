@@ -9,8 +9,7 @@ $HasPrereleaseSuffix = -not [string]::IsNullOrWhiteSpace($PrereleaseName)
 if ($Prefix) {
   $TagMatch = "$Prefix-v*"
   $PrefixWithDash = "$Prefix-"
-}
-else {
+} else {
   $TagMatch = "v*"
   $PrefixWithDash = ""
 }
@@ -65,8 +64,7 @@ foreach ($Subject in $CommitSubjects) {
     $IsBreakingChangeOrFeature = $true
     $CommitSubject = $Subject
     break
-  }
-  elseif ($Subject -match $FeatPattern -and -not $IsBreakingChangeOrFeature) {
+  } elseif ($Subject -match $FeatPattern -and -not $IsBreakingChangeOrFeature) {
     $IsBreakingChangeOrFeature = $true
     $CommitSubject = $Subject
   }
@@ -89,8 +87,7 @@ if ($IsBreakingChangeOrFeature -and -not $SameEpoch) {
   $NewWeek = $CurrentWeek
   $NewPatch = 0
   $BumpType = 'release'
-}
-else {
+} else {
   $NewYear = $LastStableTag ? $LastStableYear : $CurrentYear
   $NewWeek = $LastStableTag ? $LastStableWeek : $CurrentWeek
   $NewPatch = $LastStablePatch + 1
@@ -100,6 +97,7 @@ else {
 $TargetBaseVersion = "$NewYear.$NewWeek.$NewPatch"
 
 # Find the last prerelease for this target base version and name
+$LastPrereleaseTag = ''
 $LastPrereleaseVersion = 0
 
 if ($IsPrerelease -and $HasPrereleaseSuffix) {
@@ -108,18 +106,20 @@ if ($IsPrerelease -and $HasPrereleaseSuffix) {
     $StrippedTag = $Tag -replace "^$([regex]::Escape($PrefixWithDash))", ''
     $Version = $StrippedTag -replace '^v', ''
     if ($Version -match "^(\d+\.\d+\.\d+)-${EscapedName}\.(\d+)$" -and $Matches[1] -eq $TargetBaseVersion) {
+      $LastPrereleaseTag = $Tag
       $LastPrereleaseVersion = [int]$Matches[2]
       break
     }
   }
 }
 
-# Build the final version string
+# Build the final version string and determine changelog base tag.
+$ChangelogBaseTag = ''
 if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $PrereleaseVersion = $LastPrereleaseVersion + 1
   $NewVersion = "$NewYear.$NewWeek.$NewPatch-$PrereleaseName.$PrereleaseVersion"
-}
-else {
+  $ChangelogBaseTag = $LastPrereleaseTag ? $LastPrereleaseTag : $LastStableTag
+} else {
   $NewVersion = "$NewYear.$NewWeek.$NewPatch"
 }
 
@@ -128,6 +128,7 @@ $NewTag = "${PrefixWithDash}v${NewVersion}"
 # Write outputs
 "bump_type=$BumpType" >> $env:GITHUB_OUTPUT
 "previous_tag=$LastStableTag" >> $env:GITHUB_OUTPUT
+"previous_tag_for_changelog=$ChangelogBaseTag" >> $env:GITHUB_OUTPUT
 "version=$NewVersion" >> $env:GITHUB_OUTPUT
 "tag=$NewTag" >> $env:GITHUB_OUTPUT
 "commit_subject=$CommitSubject" >> $env:GITHUB_OUTPUT

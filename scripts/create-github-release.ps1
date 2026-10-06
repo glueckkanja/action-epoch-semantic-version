@@ -6,25 +6,28 @@ if ($LASTEXITCODE -eq 0) {
   throw "Release $($env:TAG_NAME) already exists. Skipping creation."
 }
 
-# Determine changelog comparison base from GitHub release flags
-$AllReleasesJson = gh release list --limit 100 --json 'tagName,isPrerelease,isLatest'
-if ($LASTEXITCODE -ne 0) {
-  throw 'Failed to retrieve releases'
-}
+# Use compute-next-version's changelog base for suffixed prereleases - otherwise use GitHub release flags to choose a comparison base
+$ChangelogBaseTag = $env:CHANGELOG_BASE_TAG
 
-$AllReleases = $AllReleasesJson ? @($AllReleasesJson | ConvertFrom-Json) : @()
-$LastPrerelease = $AllReleases | Where-Object { $_.isPrerelease } | Select-Object -First 1
-$LastLatest = $AllReleases | Where-Object { $_.isLatest } | Select-Object -First 1
+if (-not $ChangelogBaseTag) {
+  $AllReleasesJson = gh release list --limit 100 --json 'tagName,isPrerelease,isLatest'
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to retrieve releases'
+  }
 
-$ChangelogBaseTag = $LastLatest ? $LastLatest.tagName : ''
-if ($env:IS_PRERELEASE -eq 'true' -and $LastPrerelease) {
-  $ChangelogBaseTag = $LastPrerelease.tagName
+  $AllReleases = $AllReleasesJson ? @($AllReleasesJson | ConvertFrom-Json) : @()
+  $LastPrerelease = $AllReleases | Where-Object { $_.isPrerelease } | Select-Object -First 1
+  $LastLatest = $AllReleases | Where-Object { $_.isLatest } | Select-Object -First 1
+
+  $ChangelogBaseTag = $LastLatest ? $LastLatest.tagName : ''
+  if ($env:IS_PRERELEASE -eq 'true' -and $LastPrerelease) {
+    $ChangelogBaseTag = $LastPrerelease.tagName
+  }
 }
 
 if ($ChangelogBaseTag) {
   Write-Host "Generating release notes from $ChangelogBaseTag to $($env:TAG_NAME)"
-}
-else {
+} else {
   Write-Host "Generating release notes from initial commit to $($env:TAG_NAME)"
 }
 
