@@ -173,7 +173,7 @@ if (-not $Prefix -and -not $HasPrereleaseSuffix) {
           $ChangelogBaseTag = $LatestRelease.tag_name
         }
       } else {
-        Write-Host 'GitHub API returned no "latest" release; falling back to git-tag-derived predecessor.'
+        Write-Host '::warning::GitHub API returned no "latest" release; falling back to git-tag-derived predecessor.'
       }
     }
   } catch {
