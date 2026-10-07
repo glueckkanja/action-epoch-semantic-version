@@ -131,9 +131,10 @@ if (-not $Prefix -and -not $HasPrereleaseSuffix) {
 
   try {
     if ($IsPrerelease) {
-      # Prerelease without a suffix: compare against newest no-suffix prerelease,
-      # but only if the newest no-suffix stable is not newer (otherwise the
-      # prerelease base would be stale compared to a release that superseded it).
+      # Prerelease without a suffix: only treat the newest no-suffix prerelease as the
+      # predecessor when it is the direct neighbor of this run (no stable release
+      # published between them). If the newest no-suffix stable is more recent, the
+      # prerelease was superseded and we must compare against the stable instead.
       $ReleasesJson = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" 2>$null
       if ($LASTEXITCODE -eq 0 -and $ReleasesJson) {
         $Releases = $ReleasesJson | ConvertFrom-Json
@@ -150,9 +151,15 @@ if (-not $Prefix -and -not $HasPrereleaseSuffix) {
         Sort-Object -Property published_at -Descending |
         Select-Object -First 1
 
-        $ChangelogBaseTag = $LatestStableRelease.tag_name
-        if ($LatestPrereleaseRelease) {
+        $LatestPrereleasePublishedAt = $LatestPrereleaseRelease ? [datetime]$LatestPrereleaseRelease.published_at : [datetime]::MinValue
+        $LatestStablePublishedAt = $LatestStableRelease ? [datetime]$LatestStableRelease.published_at : [datetime]::MinValue
+
+        if ($LatestPrereleaseRelease -and $LatestPrereleasePublishedAt -gt $LatestStablePublishedAt) {
+          # Select direct prerelease neighbor as changelog base
           $ChangelogBaseTag = $LatestPrereleaseRelease.tag_name
+        } elseif ($LatestStableRelease) {
+          # use latest stable release as changelog base
+          $ChangelogBaseTag = $LatestStableRelease.tag_name
         }
       } else {
         Write-Host 'GitHub API returned no releases for prerelease predecessor lookup; falling back to git-tag-derived predecessor.'
