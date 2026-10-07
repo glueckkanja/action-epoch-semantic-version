@@ -72,6 +72,7 @@ runs:
         CHECK_LAST_COMMIT_ONLY: ${{ inputs.check_last_commit_only }}
         IS_PRERELEASE: ${{ inputs.is_prerelease }}
         PRERELEASE_NAME: ${{ inputs.prerelease_name }}
+        GH_TOKEN: ${{ inputs.github_token }}
       shell: pwsh
       run: |
         & "${{ github.action_path }}/scripts/compute-next-version.ps1"

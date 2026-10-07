@@ -113,14 +113,65 @@ if ($IsPrerelease -and $HasPrereleaseSuffix) {
   }
 }
 
-# Build the final version string and determine changelog base tag.
-$ChangelogBaseTag = ''
+# Build the final version string and determine changelog base tag
 if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $PrereleaseVersion = $LastPrereleaseVersion + 1
   $NewVersion = "$NewYear.$NewWeek.$NewPatch-$PrereleaseName.$PrereleaseVersion"
   $ChangelogBaseTag = $LastPrereleaseTag ? $LastPrereleaseTag : $LastStableTag
 } else {
   $NewVersion = "$NewYear.$NewWeek.$NewPatch"
+  $ChangelogBaseTag = $LastStableTag
+}
+
+# When no prefix and no prerelease suffix are provided, derive the predecessor
+# from GitHub release metadata (the "latest" / "prerelease" flags) rather than
+# from local tag ordering. With a prefix or suffix we keep name-neighbor matching.
+if (-not $Prefix -and -not $HasPrereleaseSuffix) {
+  $NoSuffixTagPattern = '^v\d+\.\d+\.\d+$'
+
+  try {
+    if ($IsPrerelease) {
+      # Prerelease without a suffix: compare against newest no-suffix prerelease,
+      # but only if the newest no-suffix stable is not newer (otherwise the
+      # prerelease base would be stale compared to a release that superseded it).
+      $ReleasesJson = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" 2>$null
+      if ($LASTEXITCODE -eq 0 -and $ReleasesJson) {
+        $Releases = $ReleasesJson | ConvertFrom-Json
+        $Candidates = @($Releases | Where-Object {
+            -not $_.draft -and $_.tag_name -match $NoSuffixTagPattern
+          })
+
+        $LatestPrereleaseRelease = $Candidates |
+        Where-Object { $_.prerelease } |
+        Sort-Object -Property published_at -Descending |
+        Select-Object -First 1
+        $LatestStableRelease = $Candidates |
+        Where-Object { -not $_.prerelease } |
+        Sort-Object -Property published_at -Descending |
+        Select-Object -First 1
+
+        $ChangelogBaseTag = $LatestStableRelease.tag_name
+        if ($LatestPrereleaseRelease) {
+          $ChangelogBaseTag = $LatestPrereleaseRelease.tag_name
+        }
+      } else {
+        Write-Host 'GitHub API returned no releases for prerelease predecessor lookup; falling back to git-tag-derived predecessor.'
+      }
+    } else {
+      # Stable release: use whatever GitHub currently flags as "latest".
+      $LatestReleaseJson = gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" 2>$null
+      if ($LASTEXITCODE -eq 0 -and $LatestReleaseJson) {
+        $LatestRelease = $LatestReleaseJson | ConvertFrom-Json
+        if ($LatestRelease.tag_name -match $NoSuffixTagPattern) {
+          $ChangelogBaseTag = $LatestRelease.tag_name
+        }
+      } else {
+        Write-Host 'GitHub API returned no "latest" release; falling back to git-tag-derived predecessor.'
+      }
+    }
+  } catch {
+    Write-Host "::warning::GitHub API predecessor lookup failed, falling back to git-tag-derived predecessor: $_"
+  }
 }
 
 $NewTag = "${PrefixWithDash}v${NewVersion}"
@@ -128,13 +179,10 @@ $NewTag = "${PrefixWithDash}v${NewVersion}"
 # Write outputs
 "bump_type=$BumpType" >> $env:GITHUB_OUTPUT
 "previous_tag=$LastStableTag" >> $env:GITHUB_OUTPUT
-if ($ChangelogBaseTag) {
-  "previous_tag_for_changelog=$ChangelogBaseTag" >> $env:GITHUB_OUTPUT
-} else {
-  "previous_tag_for_changelog=Changelog base will be resolved at release creation" >> $env:GITHUB_OUTPUT
-}
+"previous_tag_for_changelog=$ChangelogBaseTag" >> $env:GITHUB_OUTPUT
 "version=$NewVersion" >> $env:GITHUB_OUTPUT
 "tag=$NewTag" >> $env:GITHUB_OUTPUT
 "commit_subject=$CommitSubject" >> $env:GITHUB_OUTPUT
 
 Write-Host "Determined $BumpType bump from '$CommitSubject' -> $NewTag"
+Write-Host "Changelog will be generated from: $($ChangelogBaseTag ? $ChangelogBaseTag : 'initial commit')"

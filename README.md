@@ -109,3 +109,15 @@ The action inspects commit messages and applies the following precedence:
 If no existing epoch-versioned tags are found, versioning starts from `{currentYear}.{currentWeek}.0` (for a release bump) or `{currentYear}.{currentWeek}.1` (for a patch bump).
 
 Each run also publishes (or updates) a Git tag matching the new version. By default tags look like `vYYYY.WW.P`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vYYYY.WW.P`. The action creates a GitHub release with auto-generated release notes for the generated tag. Existing tags or releases are detected and left untouched.
+
+### Release notes predecessor
+
+The tag used as the start point for auto-generated release notes depends on whether `prefix` and `prerelease_name` are set:
+
+- **No `prefix` and no `prerelease_name`** — the predecessor is taken from GitHub's release metadata, so release notes compare against something of the same "level":
+  - For a stable release (`is_prerelease: "false"`): the release currently flagged as **latest** on GitHub (via `GET /repos/{owner}/{repo}/releases/latest`).
+  - For a prerelease (`is_prerelease: "true"`, no suffix name): the newest release flagged as **prerelease** whose tag matches `v<year>.<week>.<patch>`. If the newest **stable** release (same tag shape) was published after that prerelease, the stable release is used instead — this prevents comparing against a prerelease that has already been superseded by a stable release.
+  - If the GitHub API returns no matching release (brand-new repo, nothing flagged yet, API error), the action falls back to the git-tag-based predecessor described below.
+- **Any `prefix` or any `prerelease_name` set** — name-neighbour matching from local tags: the newest matching tag of the same shape (same prefix, and for prereleases the same base version and suffix name) is used, falling back to the newest matching stable tag.
+
+The `previous_tag` output always reflects the newest matching stable tag from local git history, regardless of which mode is used for the release notes predecessor.
