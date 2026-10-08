@@ -123,10 +123,10 @@ if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $ChangelogBaseTag = $LastStableTag
 }
 
-# When no prefix and no prerelease suffix are provided, derive the predecessor
+# When no prerelease suffix is provided, derive the predecessor
 # from GitHub release metadata (the "latest" / "prerelease" flags) rather than
-# from local tag ordering. With a prefix or suffix we keep name-neighbor matching.
-if (-not $Prefix -and -not $HasPrereleaseSuffix) {
+# from local tag ordering. With a suffix we keep name-neighbor matching.
+if (-not $HasPrereleaseSuffix) {
   $NoSuffixTagPattern = '^v\d+\.\d+\.\d+$'
 
   try {
