@@ -123,6 +123,57 @@ if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $ChangelogBaseTag = $LastStableTag
 }
 
+# When no prerelease suffix is provided, derive the predecessor
+# from GitHub release metadata (the "latest" / "prerelease" flags) rather than
+# from local tag ordering. With a suffix we keep name-neighbor matching.
+if (-not $HasPrereleaseSuffix) {
+  $NoSuffixTagPattern = '^v\d+\.\d+\.\d+$'
+
+  try {
+    if ($IsPrerelease) {
+      # Prerelease without a suffix: the predecessor is the newest no-suffix release,
+      # stable or prerelease. Releases are listed newest first, so page until one is found.
+      $PredecessorRelease = $null
+      $ReleasePage = 1
+
+      do {
+        $ReleasesJson = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100&page=$ReleasePage" 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $ReleasesJson) {
+          Write-Host "::warning::GitHub API request for releases page $ReleasePage failed (exit code $LASTEXITCODE); stopping predecessor lookup."
+          break
+        }
+
+        $PageReleases = @($ReleasesJson | ConvertFrom-Json)
+        $PredecessorRelease = $PageReleases |
+        Where-Object { -not $_.draft -and $_.tag_name -match $NoSuffixTagPattern } |
+        Sort-Object -Property published_at -Descending |
+        Select-Object -First 1
+
+        $ReleasePage++
+      } while (-not $PredecessorRelease -and $PageReleases.Count -eq 100)
+
+      if ($PredecessorRelease) {
+        $ChangelogBaseTag = $PredecessorRelease.tag_name
+      } else {
+        Write-Host 'GitHub API returned no matching releases for prerelease predecessor lookup; falling back to git-tag-derived predecessor.'
+      }
+    } else {
+      # Stable release: use whatever GitHub currently flags as "latest".
+      $LatestReleaseJson = gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" 2>$null
+      if ($LASTEXITCODE -eq 0 -and $LatestReleaseJson) {
+        $LatestRelease = $LatestReleaseJson | ConvertFrom-Json
+        if ($LatestRelease.tag_name -match $NoSuffixTagPattern) {
+          $ChangelogBaseTag = $LatestRelease.tag_name
+        }
+      } else {
+        Write-Host '::warning::GitHub API returned no "latest" release; falling back to git-tag-derived predecessor.'
+      }
+    }
+  } catch {
+    Write-Host "::warning::GitHub API predecessor lookup failed, falling back to git-tag-derived predecessor: $_"
+  }
+}
+
 $NewTag = "${PrefixWithDash}v${NewVersion}"
 
 # Write outputs
