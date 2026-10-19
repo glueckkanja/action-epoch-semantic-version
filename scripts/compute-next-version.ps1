@@ -108,7 +108,7 @@ if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $EscapedName = [regex]::Escape($PrereleaseName)
   foreach ($Tag in $AllTags) {
     $Version = Get-VersionFromTag -Tag $Tag -PrefixWithDash $PrefixWithDash
-    if ($Version -match "^(\d+\.\d+\.\d+)-${EscapedName}\.(\d+)$" -and $Matches[1] -eq $TargetBaseVersion) {
+    if ($Version -cmatch "^(\d+\.\d+\.\d+)-${EscapedName}\.(\d+)$" -and $Matches[1] -eq $TargetBaseVersion) {
       $LastPrereleaseTag = $Tag
       $LastPrereleaseVersion = [int]$Matches[2]
       break
