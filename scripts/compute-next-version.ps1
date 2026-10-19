@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $Prefix = $env:PREFIX
 $CheckLastCommitOnly = $env:CHECK_LAST_COMMIT_ONLY -eq 'true'
 $IsPrerelease = $env:IS_PRERELEASE -eq 'true'
-$PrereleaseName = $env:PRERELEASE_NAME
+$PrereleaseName = ($env:PRERELEASE_NAME ?? '').Trim()
 $HasPrereleaseSuffix = -not [string]::IsNullOrWhiteSpace($PrereleaseName)
 
 if ($Prefix) {
@@ -18,16 +18,20 @@ if ($Prefix) {
 $TagOutput = git tag -l "$TagMatch" --sort=-version:refname
 $AllTags = @($TagOutput | Where-Object { $_ })
 
+function Get-VersionFromTag {
+  param([string]$Tag, [string]$PrefixWithDash)
+  $StrippedTag = $Tag -replace "^$([regex]::Escape($PrefixWithDash))", ''
+  return $StrippedTag -replace '^v', ''
+}
+
 # Find the last stable version (no prerelease identifier)
 $LastStableTag = ''
 $LastStableYear = 0
 $LastStableWeek = 0
 $LastStablePatch = 0
 
-# find latest stable epoch semver version (year >= 2020, week 1-53) - standard semver tags are ignored
 foreach ($Tag in $AllTags) {
-  $StrippedTag = $Tag -replace "^$([regex]::Escape($PrefixWithDash))", ''
-  $Version = $StrippedTag -replace '^v', ''
+  $Version = Get-VersionFromTag -Tag $Tag -PrefixWithDash $PrefixWithDash
   if ($Version -notmatch '-' -and $Version -match '^(\d+)\.(\d+)\.(\d+)$') {
     $CandidateYear = [int]$Matches[1]
     $CandidateWeek = [int]$Matches[2]
@@ -45,14 +49,13 @@ foreach ($Tag in $AllTags) {
 $LogLimit = $CheckLastCommitOnly ? @('-1') : @()
 $LogRange = $LastStableTag ? @("$LastStableTag..HEAD") : @()
 $CommitSubjects = @(git log @LogLimit --pretty=%s @LogRange)
-$CommitSubjects = @($CommitSubjects | Where-Object { $_ })
 
-# Scan commits for bump level: release patterns (BREAKING CHANGE:, feat:, <any>!:) vs patch
-$ReleasePattern = '^\S*!:'
-$FeatPattern = '^feat(\([^)]*\))?:'
+# Scan commits for the highest bump level: breaking change (2) > feature (1) > patch (0)
+$ExclamationMarkPattern = '^\S*!:'
 $BreakingChangePattern = '^BREAKING CHANGE:'
+$FeaturePattern = '^feat(\([^)]*\))?:'
 
-$IsBreakingChangeOrFeature = $false
+$HighestLevel = 0
 $CommitSubject = ''
 
 foreach ($Subject in $CommitSubjects) {
@@ -60,12 +63,12 @@ foreach ($Subject in $CommitSubjects) {
     $CommitSubject = $Subject
   }
 
-  if ($Subject -match $ReleasePattern -or $Subject -match $BreakingChangePattern) {
-    $IsBreakingChangeOrFeature = $true
+  if ($Subject -match $ExclamationMarkPattern -or $Subject -match $BreakingChangePattern) {
+    $HighestLevel = 2
     $CommitSubject = $Subject
     break
-  } elseif ($Subject -match $FeatPattern -and -not $IsBreakingChangeOrFeature) {
-    $IsBreakingChangeOrFeature = $true
+  } elseif ($Subject -match $FeaturePattern -and $HighestLevel -lt 1) {
+    $HighestLevel = 1
     $CommitSubject = $Subject
   }
 }
@@ -80,6 +83,7 @@ $CurrentWeek = [System.Globalization.ISOWeek]::GetWeekOfYear($Now)
 $CurrentYear = [System.Globalization.ISOWeek]::GetYear($Now)
 
 # Determine version
+$IsBreakingChangeOrFeature = $HighestLevel -ge 1
 $SameEpoch = $LastStableTag -and ($CurrentYear -le $LastStableYear) -and ($CurrentWeek -le $LastStableWeek)
 
 if ($IsBreakingChangeOrFeature -and -not $SameEpoch) {
@@ -103,8 +107,7 @@ $LastPrereleaseVersion = 0
 if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $EscapedName = [regex]::Escape($PrereleaseName)
   foreach ($Tag in $AllTags) {
-    $StrippedTag = $Tag -replace "^$([regex]::Escape($PrefixWithDash))", ''
-    $Version = $StrippedTag -replace '^v', ''
+    $Version = Get-VersionFromTag -Tag $Tag -PrefixWithDash $PrefixWithDash
     if ($Version -match "^(\d+\.\d+\.\d+)-${EscapedName}\.(\d+)$" -and $Matches[1] -eq $TargetBaseVersion) {
       $LastPrereleaseTag = $Tag
       $LastPrereleaseVersion = [int]$Matches[2]
@@ -116,10 +119,10 @@ if ($IsPrerelease -and $HasPrereleaseSuffix) {
 # Build the final version string and determine changelog base tag
 if ($IsPrerelease -and $HasPrereleaseSuffix) {
   $PrereleaseVersion = $LastPrereleaseVersion + 1
-  $NewVersion = "$NewYear.$NewWeek.$NewPatch-$PrereleaseName.$PrereleaseVersion"
+  $NewVersion = "$TargetBaseVersion-$PrereleaseName.$PrereleaseVersion"
   $ChangelogBaseTag = $LastPrereleaseTag ? $LastPrereleaseTag : $LastStableTag
 } else {
-  $NewVersion = "$NewYear.$NewWeek.$NewPatch"
+  $NewVersion = $TargetBaseVersion
   $ChangelogBaseTag = $LastStableTag
 }
 

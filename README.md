@@ -110,7 +110,7 @@ The action inspects commit messages and applies the following precedence:
 
 If no existing epoch-versioned tags are found, versioning starts from `{currentYear}.{currentWeek}.0` (for a release bump) or `{currentYear}.{currentWeek}.1` (for a patch bump).
 
-Each run also publishes (or updates) a Git tag matching the new version. By default tags look like `vYYYY.WW.P`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vYYYY.WW.P`. When no `prefix` is set, the action creates a GitHub release with auto-generated release notes. When a `prefix` is set, the GitHub release is still created, but auto-generated release notes are skipped. Existing tags are left untouched, but the action fails if a release for the generated tag already exists because an existing release may be immutable and unable to receive assets.
+Each run also publishes a Git tag matching the new version. By default tags look like `vYYYY.WW.P`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vYYYY.WW.P`. When no `prefix` is set, the action creates a GitHub release with auto-generated release notes. When a `prefix` is set, the GitHub release is still created, but auto-generated release notes are skipped. If a tag for the computed version already exists, the action aborts with an error. It also fails if a release for the generated tag already exists, because an existing release may be immutable and unable to receive assets.
 
 ### Release notes predecessor
 
@@ -118,7 +118,7 @@ The tag used as the start point for auto-generated release notes depends on whet
 
 - **No `prefix` and no `prerelease_name`** — the predecessor is taken from GitHub's release metadata, so release notes compare against something of the same "level":
   - For a stable release (`is_prerelease: "false"`): the release currently flagged as **latest** on GitHub (via `GET /repos/{owner}/{repo}/releases/latest`).
-  - For a prerelease (`is_prerelease: "true"`, no suffix name): the newest release flagged as **prerelease** whose tag matches `v<year>.<week>.<patch>`. If the newest **stable** release (same tag shape) was published after that prerelease, the stable release is used instead — this prevents comparing against a prerelease that has already been superseded by a stable release.
+  - For a prerelease (`is_prerelease: "true"`, no suffix name): the newest non-draft release (stable or prerelease) whose tag matches `v<year>.<week>.<patch>`, ordered by publication date.
   - If the GitHub API returns no matching release (brand-new repo, nothing flagged yet, API error), the action falls back to the git-tag-based predecessor described below.
 - **No `prefix` and a `prerelease_name` set** — name-neighbour matching from local tags: the newest prerelease tag with the same base version and suffix name is used, falling back to the newest matching stable tag.
 
