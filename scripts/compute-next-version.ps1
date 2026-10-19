@@ -174,6 +174,8 @@ if (-not $HasPrereleaseSuffix) {
     }
   } catch {
     Write-Host "::warning::GitHub API predecessor lookup failed, falling back to git-tag-derived predecessor: $_"
+  } finally {
+    $global:LASTEXITCODE = 0
   }
 }
 
