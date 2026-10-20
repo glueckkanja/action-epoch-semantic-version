@@ -33,6 +33,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   version:
     runs-on: ubuntu-latest
@@ -86,7 +89,7 @@ jobs:
 - `is_draft_release` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, creates the GitHub release as a draft.
 - `suppress_tag` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, skips creating both the Git tag and the GitHub release.
 - `check_last_commit_only` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, only the most recent commit is inspected to determine the bump type instead of all commits since the previous tag.
-- `is_prerelease` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, marks the GitHub release as prerelease.
+- `is_prerelease` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, generates a prerelease version (for example `2026.8.2-rc.1`).
 - `prerelease_name` _(string, default: empty)_ – Optional prerelease identifier name (for example `rc`, `alpha`, `beta`). If set, the version includes a suffix (for example `v2026.8.2-rc.1`). If empty, the version remains plain epoch semver (for example `v2026.8.2`) while still creating a prerelease release.
 - `asset_path` _(string, default: empty)_ – Path to a file or directory to attach to the release as assets. When set, the release is created as a draft first and assets are uploaded before publication. If `is_draft_release` is `"true"`, the release remains a draft after assets are uploaded.
 
