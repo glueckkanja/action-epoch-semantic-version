@@ -33,6 +33,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   version:
     runs-on: ubuntu-latest
@@ -86,7 +89,7 @@ jobs:
 - `is_draft_release` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, creates the GitHub release as a draft.
 - `suppress_tag` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, skips creating both the Git tag and the GitHub release.
 - `check_last_commit_only` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, only the most recent commit is inspected to determine the bump type instead of all commits since the previous tag.
-- `is_prerelease` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, marks the GitHub release as prerelease.
+- `is_prerelease` _(string `"true"/"false"`, default: `"false"`)_ – When `"true"`, generates a prerelease version (for example `2026.8.2-rc.1`).
 - `prerelease_name` _(string, default: empty)_ – Optional prerelease identifier name (for example `rc`, `alpha`, `beta`). If set, the version includes a suffix (for example `v2026.8.2-rc.1`). If empty, the version remains plain epoch semver (for example `v2026.8.2`) while still creating a prerelease release.
 - `asset_path` _(string, default: empty)_ – Path to a file or directory to attach to the release as assets. When set, the release is created as a draft first and assets are uploaded before publication. If `is_draft_release` is `"true"`, the release remains a draft after assets are uploaded.
 
@@ -110,7 +113,7 @@ The action inspects commit messages and applies the following precedence:
 
 If no existing epoch-versioned tags are found, versioning starts from `{currentYear}.{currentWeek}.0` (for a release bump) or `{currentYear}.{currentWeek}.1` (for a patch bump).
 
-Each run also publishes (or updates) a Git tag matching the new version. By default tags look like `vYYYY.WW.P`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vYYYY.WW.P`. When no `prefix` is set, the action creates a GitHub release with auto-generated release notes. When a `prefix` is set, the GitHub release is still created, but auto-generated release notes are skipped. Existing tags are left untouched, but the action fails if a release for the generated tag already exists because an existing release may be immutable and unable to receive assets.
+Each run also publishes a Git tag matching the new version. By default tags look like `vYYYY.WW.P`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vYYYY.WW.P`. When no `prefix` is set, the action creates a GitHub release with auto-generated release notes. When a `prefix` is set, the GitHub release is still created, but auto-generated release notes are skipped. If a tag for the computed version already exists, the action aborts with an error. It also fails if a release for the generated tag already exists, because an existing release may be immutable and unable to receive assets.
 
 ### Release notes predecessor
 
@@ -118,7 +121,7 @@ The tag used as the start point for auto-generated release notes depends on whet
 
 - **No `prefix` and no `prerelease_name`** — the predecessor is taken from GitHub's release metadata, so release notes compare against something of the same "level":
   - For a stable release (`is_prerelease: "false"`): the release currently flagged as **latest** on GitHub (via `GET /repos/{owner}/{repo}/releases/latest`).
-  - For a prerelease (`is_prerelease: "true"`, no suffix name): the newest release flagged as **prerelease** whose tag matches `v<year>.<week>.<patch>`. If the newest **stable** release (same tag shape) was published after that prerelease, the stable release is used instead — this prevents comparing against a prerelease that has already been superseded by a stable release.
+  - For a prerelease (`is_prerelease: "true"`, no suffix name): the newest non-draft release (stable or prerelease) whose tag matches `v<year>.<week>.<patch>`, ordered by publication date.
   - If the GitHub API returns no matching release (brand-new repo, nothing flagged yet, API error), the action falls back to the git-tag-based predecessor described below.
 - **No `prefix` and a `prerelease_name` set** — name-neighbour matching from local tags: the newest prerelease tag with the same base version and suffix name is used, falling back to the newest matching stable tag.
 
