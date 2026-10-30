@@ -36,8 +36,9 @@ jobs:
     steps:
       - name: Generate epoch semantic version
         id: version
-        uses: glueckkanja/action-semantic-version@35b934d4dcec52abc5a3f49d9e60a51df9357730 # v4.0.1
+        uses: glueckkanja/action-semantic-version@b413070dd1f039b1fbfda9f402dd52d602879fb3 # v5.0.0
         with:
+          prerelease_name: "prerelease"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           suppress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
           is_prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
